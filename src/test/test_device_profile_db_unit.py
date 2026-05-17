@@ -99,8 +99,10 @@ class TestDeviceProfileDB(unittest.TestCase):
         for sensor in ["accelerometer", "gyroscope", "magnetometer"]:
             self.assertTrue(hardware_profile["sensors"][sensor])
 
-    def test_generate_imei_produces_luhn_valid_15_digit_value(self):
-        imei = self.db._generate_imei()
+    def test_generated_hardware_profile_contains_luhn_valid_imei(self):
+        hardware_profile = self.db.generate_hardware_profile("samsung", "Galaxy S21", android_version="12.0")
+        self.assertIsNotNone(hardware_profile)
+        imei = hardware_profile["identifiers"]["imei"]
         self.assertRegex(imei, r"^\d{15}$")
         self.assertTrue(_is_valid_luhn(imei))
 
