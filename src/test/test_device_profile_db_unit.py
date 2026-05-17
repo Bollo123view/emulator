@@ -17,7 +17,7 @@ if PROJECT_ROOT not in sys.path:
 from src.utils.device_profile_db import DeviceProfileDB
 
 
-def _is_valid_luhn(number: str) -> bool:
+def is_valid_luhn_checksum(number: str) -> bool:
     digits = [int(d) for d in number]
     checksum = 0
     parity = len(digits) % 2
@@ -105,7 +105,7 @@ class TestDeviceProfileDB(unittest.TestCase):
         self.assertIsNotNone(hardware_profile)
         imei = hardware_profile["identifiers"]["imei"]
         self.assertRegex(imei, r"^\d{15}$")
-        self.assertTrue(_is_valid_luhn(imei))
+        self.assertTrue(is_valid_luhn_checksum(imei))
 
 
 if __name__ == "__main__":
