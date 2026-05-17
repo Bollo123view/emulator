@@ -18,16 +18,16 @@ from src.utils.device_profile_db import DeviceProfileDB
 
 
 def _is_valid_luhn(number: str) -> bool:
-    total = 0
-    for i, digit in enumerate(number[:-1]):
-        value = int(digit)
-        if i % 2 == 1:
-            value *= 2
-            if value > 9:
-                value -= 9
-        total += value
-    check_digit = (10 - (total % 10)) % 10
-    return check_digit == int(number[-1])
+    digits = [int(d) for d in number]
+    checksum = 0
+    parity = len(digits) % 2
+    for i, digit in enumerate(digits):
+        if i % 2 == parity:
+            digit *= 2
+            if digit > 9:
+                digit -= 9
+        checksum += digit
+    return checksum % 10 == 0
 
 
 class TestDeviceProfileDB(unittest.TestCase):
@@ -94,7 +94,8 @@ class TestDeviceProfileDB(unittest.TestCase):
         self.assertIn("ro.serialno", hardware_profile["build_prop"])
         self.assertIn("ro.boot.serialno", hardware_profile["build_prop"])
         self.assertIn("net.hostname", hardware_profile["build_prop"])
-        self.assertTrue(re.match(r"^venus-\d{4}$", hardware_profile["build_prop"]["net.hostname"]))
+        expected_prefix = hardware_profile["build_prop"]["ro.product.device"]
+        self.assertRegex(hardware_profile["build_prop"]["net.hostname"], rf"^{re.escape(expected_prefix)}-\d{{4}}$")
 
         for sensor in ["accelerometer", "gyroscope", "magnetometer"]:
             self.assertTrue(hardware_profile["sensors"][sensor])
