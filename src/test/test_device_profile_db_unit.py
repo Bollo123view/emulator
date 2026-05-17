@@ -33,6 +33,7 @@ def is_valid_luhn_checksum(number: str) -> bool:
 class TestDeviceProfileDB(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.mkdtemp(prefix="device-profile-db-")
+        self.addCleanup(shutil.rmtree, self.temp_dir, ignore_errors=True)
         self.db = DeviceProfileDB(db_path=self.temp_dir)
 
     def tearDown(self):
@@ -81,6 +82,36 @@ class TestDeviceProfileDB(unittest.TestCase):
         self.assertTrue(deleted)
         self.assertNotIn("acme", self.db.get_manufacturers())
         self.assertFalse(os.path.exists(os.path.join(self.temp_dir, "acme.json")))
+
+    def test_delete_one_device_keeps_manufacturer_when_others_remain(self):
+        first_profile = {
+            "android_versions": ["12.0"],
+            "properties": {
+                "ro.build.fingerprint": "acme/one/one:12/ONE/001:user/release-keys",
+                "ro.build.tags": "release-keys",
+                "ro.build.type": "user",
+                "ro.product.device": "one",
+            },
+            "sensors": ["accelerometer"],
+        }
+        second_profile = {
+            "android_versions": ["12.0"],
+            "properties": {
+                "ro.build.fingerprint": "acme/two/two:12/TWO/001:user/release-keys",
+                "ro.build.tags": "release-keys",
+                "ro.build.type": "user",
+                "ro.product.device": "two",
+            },
+            "sensors": ["gyroscope"],
+        }
+
+        self.assertTrue(self.db.add_device_profile("acme", "Acme One", first_profile))
+        self.assertTrue(self.db.add_device_profile("acme", "Acme Two", second_profile))
+        self.assertTrue(self.db.delete_device_profile("acme", "Acme One"))
+
+        self.assertIn("acme", self.db.get_manufacturers())
+        self.assertEqual(self.db.get_devices("acme"), ["Acme Two"])
+        self.assertTrue(os.path.exists(os.path.join(self.temp_dir, "acme.json")))
 
     def test_generate_hardware_profile_populates_identifiers_and_defaults(self):
         hardware_profile = self.db.generate_hardware_profile("xiaomi", "Mi 11", android_version="12.0")
