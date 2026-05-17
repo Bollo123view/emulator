@@ -36,9 +36,6 @@ class TestDeviceProfileDB(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.temp_dir, ignore_errors=True)
         self.db = DeviceProfileDB(db_path=self.temp_dir)
 
-    def tearDown(self):
-        shutil.rmtree(self.temp_dir, ignore_errors=True)
-
     def test_default_profiles_are_created(self):
         manufacturers = set(self.db.get_manufacturers())
         self.assertTrue({"samsung", "google", "xiaomi", "oneplus"}.issubset(manufacturers))
@@ -137,6 +134,16 @@ class TestDeviceProfileDB(unittest.TestCase):
         imei = hardware_profile["identifiers"]["imei"]
         self.assertRegex(imei, r"^\d{15}$")
         self.assertTrue(is_valid_luhn_checksum(imei))
+
+    def test_multiple_generated_profiles_have_distinct_identifiers(self):
+        first = self.db.generate_hardware_profile("google", "Pixel 6", android_version="13.0")
+        second = self.db.generate_hardware_profile("google", "Pixel 6", android_version="13.0")
+        self.assertIsNotNone(first)
+        self.assertIsNotNone(second)
+
+        self.assertNotEqual(first["identifiers"]["android_id"], second["identifiers"]["android_id"])
+        self.assertNotEqual(first["identifiers"]["mac_address"], second["identifiers"]["mac_address"])
+        self.assertNotEqual(first["identifiers"]["serial"], second["identifiers"]["serial"])
 
 
 if __name__ == "__main__":
